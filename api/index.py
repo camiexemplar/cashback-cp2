@@ -1,4 +1,3 @@
-import json
 import os
 import oracledb
 
@@ -50,65 +49,60 @@ END;
 """
 
 def handler(request):
+    conn = None
+    cursor = None
+
     try:
-        body = json.loads(request.get("body") or "{}")
+        # ✅ pegar JSON corretamente na Vercel
+        body = request.json() if request.method == "POST" else {}
         acao = body.get("acao")
 
         conn = oracledb.connect(**DB_CONFIG)
         cursor = conn.cursor()
 
+        # 🔥 CASHBACK
         if acao == "cashback":
             cursor.execute(PLSQL_BLOCK)
             conn.commit()
-            return {
-                "statusCode": 200,
-                "body": json.dumps({"msg": "cashback aplicado"})
-            }
+            return {"msg": "cashback aplicado"}
 
+        # 🔥 RESET
         elif acao == "reset":
             cursor.execute("UPDATE USUARIOS SET saldo = 0")
             conn.commit()
-            return {
-                "statusCode": 200,
-                "body": json.dumps({"msg": "saldos zerados"})
-            }
+            return {"msg": "saldos zerados"}
 
-        elif acao == "listar":
-            cursor.execute("""
-            SELECT 
-                u.nome,
-                u.email,
-                u.saldo,
-                NVL(MAX(CASE WHEN i.status = 'PRESENT' THEN i.tipo END), 'NORMAL'),
-                NVL(SUM(CASE WHEN i.status = 'PRESENT' THEN i.valor_pago END), 0),
-                COUNT(CASE WHEN i.status = 'PRESENT' THEN 1 END),
-                CASE 
-                    WHEN COUNT(CASE WHEN i.status = 'PRESENT' THEN 1 END) > 3 THEN 25
-                    WHEN MAX(CASE WHEN i.status = 'PRESENT' THEN i.tipo END) = 'VIP' THEN 20
-                    ELSE 10
-                END
-            FROM USUARIOS u
-            LEFT JOIN INSCRICOES i ON u.id = i.usuario_id
-            GROUP BY u.nome, u.email, u.saldo
-            ORDER BY u.nome
-            """)
+        # 🔥 LISTAR (DEFAULT)
+        cursor.execute("""
+        SELECT 
+            u.nome,
+            u.email,
+            u.saldo,
+            NVL(MAX(CASE WHEN i.status = 'PRESENT' THEN i.tipo END), 'NORMAL'),
+            NVL(SUM(CASE WHEN i.status = 'PRESENT' THEN i.valor_pago END), 0),
+            COUNT(CASE WHEN i.status = 'PRESENT' THEN 1 END),
+            CASE 
+                WHEN COUNT(CASE WHEN i.status = 'PRESENT' THEN 1 END) > 3 THEN 25
+                WHEN MAX(CASE WHEN i.status = 'PRESENT' THEN i.tipo END) = 'VIP' THEN 20
+                ELSE 10
+            END
+        FROM USUARIOS u
+        LEFT JOIN INSCRICOES i ON u.id = i.usuario_id
+        GROUP BY u.nome, u.email, u.saldo
+        ORDER BY u.nome
+        """)
 
-            data = cursor.fetchall()
-
-            return {
-                "statusCode": 200,
-                "body": json.dumps(data)
-            }
+        data = cursor.fetchall()
+        return data
 
     except Exception as e:
-        return {
-            "statusCode": 500,
-            "body": json.dumps({"erro": str(e)})
-        }
+        return {"erro": str(e)}
 
     finally:
         try:
-            cursor.close()
-            conn.close()
+            if cursor:
+                cursor.close()
+            if conn:
+                conn.close()
         except:
             pass
