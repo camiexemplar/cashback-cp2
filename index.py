@@ -1,10 +1,11 @@
 import json
+import os
 import oracledb
 
 DB_CONFIG = {
-    "user": "RM566520",
-    "password": "856932",
-    "dsn": "oracle.fiap.com.br:1521/ORCL"
+    "user": os.environ.get("DB_USER"),
+    "password": os.environ.get("DB_PASSWORD"),
+    "dsn": os.environ.get("DB_DSN")
 }
 
 PLSQL_BLOCK = """
@@ -69,7 +70,7 @@ def handler(request):
             conn.commit()
             return {
                 "statusCode": 200,
-                "body": json.dumps({"msg": "reset feito"})
+                "body": json.dumps({"msg": "saldos zerados"})
             }
 
         elif acao == "listar":

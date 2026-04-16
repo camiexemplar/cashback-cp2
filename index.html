@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="UTF-8">
+<title>Eco Cashback</title>
+
+<style>
+body {
+    font-family: Arial;
+    background: #0f172a;
+    color: white;
+    text-align: center;
+    padding: 40px;
+}
+.card {
+    background: #1e293b;
+    padding: 30px;
+    border-radius: 20px;
+    max-width: 900px;
+    margin: auto;
+}
+button {
+    padding: 12px 20px;
+    border: none;
+    border-radius: 10px;
+    color: white;
+    cursor: pointer;
+}
+.green { background: #22c55e; }
+.red { background: #ef4444; margin-left:10px; }
+
+table {
+    width:100%;
+    margin-top:20px;
+}
+td, th {
+    padding:10px;
+}
+</style>
+</head>
+
+<body>
+
+<div class="card">
+<h1>🌱 Eco Cashback</h1>
+
+<button class="green" onclick="acao('cashback')">Cashback</button>
+<button class="red" onclick="acao('reset')">Reset</button>
+
+<table id="tabela"></table>
+</div>
+
+<script>
+async function acao(tipo){
+    await fetch("/api/index", {
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body: JSON.stringify({acao: tipo})
+    });
+    carregar();
+}
+
+async function carregar(){
+    const res = await fetch("/api/index", {
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body: JSON.stringify({acao:"listar"})
+    });
+
+    const data = await res.json();
+
+    let html = `
+    <tr>
+        <th>Nome</th>
+        <th>Email</th>
+        <th>Saldo</th>
+        <th>Status</th>
+        <th>Total Pago</th>
+        <th>Presenças</th>
+        <th>%</th>
+    </tr>`;
+
+    data.forEach(u=>{
+        html += `
+        <tr>
+            <td>${u[0]}</td>
+            <td>${u[1]}</td>
+            <td>R$ ${u[2]}</td>
+            <td>${u[3]}</td>
+            <td>R$ ${u[4]}</td>
+            <td>${u[5]}</td>
+            <td>${u[6]}%</td>
+        </tr>`;
+    });
+
+    document.getElementById("tabela").innerHTML = html;
+}
+
+carregar();
+</script>
+
+</body>
+</html>
